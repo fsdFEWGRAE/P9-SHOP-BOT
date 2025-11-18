@@ -101,7 +101,6 @@ function loadData() {
     try {
         const raw = fs.readFileSync('data.json', 'utf8');
         const data = JSON.parse(raw);
-        // تأكد أن الحقول موجودة
         data.products = data.products || {};
         data.orders = data.orders || {};
         data.invoiceCounter = data.invoiceCounter || 1000;
@@ -173,7 +172,8 @@ client.on('messageCreate', async (message) => {
                 '-buy',
                 '-discount CODE',
                 '-lang en',
-                '-lang ar'
+                '-lang ar',
+                '-sendshopbutton (إرسال زر الشراء في الروم)'
             ].join('\n')
         );
     }
@@ -342,10 +342,66 @@ client.on('messageCreate', async (message) => {
 
         return message.reply(msg);
     }
+
+    // ===== إرسال زر الشراء في الروم =====
+    if (command === 'sendshopbutton') {
+        if (message.author.id !== process.env.OWNER_ID) return;
+
+        const data = loadData();
+        const products = Object.values(data.products);
+
+        if (products.length === 0) {
+            return message.reply("❌ لا توجد منتجات حالياً.");
+        }
+
+        const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId("open_shop")
+                .setLabel("🛒 شراء منتج")
+                .setStyle(ButtonStyle.Primary)
+        );
+
+        await message.channel.send({
+            content: "🎁 **اضغط زر الشراء للاطلاع على المنتجات**",
+            components: [row]
+        });
+    }
 });
 
-
 client.on('interactionCreate', async (interaction) => {
+    // ===== زر فتح المتجر من الروم =====
+    if (interaction.isButton() && interaction.customId === 'open_shop') {
+        const data = loadData();
+        const products = Object.values(data.products);
+
+        if (products.length === 0) {
+            return interaction.reply({
+                content: "❌ لا توجد منتجات حالياً.",
+                ephemeral: true
+            });
+        }
+
+        const options = products.map(p => ({
+            label: `${p.name} - ${p.price}`,
+            description: `المخزون: ${p.keys.filter(k => !k.used).length}`,
+            value: p.id
+        }));
+
+        const row = new ActionRowBuilder().addComponents(
+            new StringSelectMenuBuilder()
+                .setCustomId("select_product")
+                .setPlaceholder("🛒 اختر منتجاً للشراء")
+                .addOptions(options)
+        );
+
+        return interaction.reply({
+            content: "🛍 **اختر المنتج الذي تريد شراءه:**",
+            components: [row],
+            ephemeral: true
+        });
+    }
+
+    // ===== اختيار المنتج / الدفع =====
     if (interaction.isStringSelectMenu()) {
         if (interaction.customId === 'select_product') {
             const productId = interaction.values[0];
@@ -452,6 +508,7 @@ client.on('interactionCreate', async (interaction) => {
         }
     }
 
+    // ===== أزرار قبول/رفض + تقييم =====
     if (interaction.isButton()) {
         if (interaction.customId.startsWith('approve_')) {
             if (interaction.user.id !== process.env.OWNER_ID) return;
@@ -723,8 +780,6 @@ app.get('/', (req, res) => {
   .status-ok { color:#22c55e; }
   .status-bad { color:#ef4444; }
   .hidden { display:none !important; }
-
-  /* Layout بعد تسجيل الدخول */
   .layout { display:flex; gap:18px; margin-top:24px; }
   .sidebar { width:230px; background:#020617; border-radius:14px; padding:14px 12px; box-shadow:0 18px 40px rgba(15,23,42,0.9); border:1px solid rgba(148,163,184,0.2); }
   .sidebar-title { font-size:18px; font-weight:700; margin-bottom:12px; }
@@ -732,45 +787,33 @@ app.get('/', (req, res) => {
   .nav-btn span.icon { font-size:16px; }
   .nav-btn.active { background:rgba(15,23,42,0.95); box-shadow:0 0 0 1px rgba(56,189,248,0.7); }
   .nav-footer { margin-top:14px; border-top:1px solid #1f2937; padding-top:10px; font-size:11px; color:#9ca3af; }
-
   .main { flex:1; min-width:0; }
   .main-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
   .main-header h2 { font-size:20px; font-weight:700; }
   .main-header-right { display:flex; align-items:center; gap:8px; font-size:12px; color:#9ca3af; }
-
   .views { }
   .view { display:none; }
   .view.active { display:block; }
-
-  /* بطاقات الإحصائيات */
   .stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-top:10px; }
   .stat-card h3 { font-size:13px; color:#9ca3af; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.08em; }
   .stat-card .value { font-size:26px; font-weight:700; margin-top:2px; }
-
-  /* جداول */
   table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
   th, td { padding:8px 10px; border-bottom:1px solid #111827; }
   th { background:#020617; color:#9ca3af; font-weight:500; text-align:left; }
   tr:hover td { background:#020617; }
-
   .tag { display:inline-flex; align-items:center; padding:2px 8px; border-radius:999px; font-size:11px; }
   .tag-pending { background:#f97316; color:#111827; }
   .tag-completed { background:#22c55e; color:#052e16; }
   .tag-rejected { background:#ef4444; color:#450a0a; }
-
-  /* فورم المنتجات والمفاتيح */
   .form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; margin-top:8px; }
   .field { margin-bottom:8px; font-size:13px; }
   .field label { display:block; margin-bottom:4px; color:#9ca3af; }
   .field input, .field textarea { width:100%; padding:7px 8px; border-radius:8px; border:1px solid #4b5563; background:#020617; color:#e5e7eb; font-size:13px; }
   .field textarea { min-height:80px; resize:vertical; }
-
-  /* Cards للتقييمات والخصومات */
   .card-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px; margin-top:10px; }
   .pill { display:inline-flex; align-items:center; padding:2px 8px; border-radius:999px; font-size:11px; background:#111827; color:#e5e7eb; }
   .stars { color:#facc15; font-size:14px; margin-bottom:4px; }
   .small { font-size:11px; color:#9ca3af; }
-
   @media (max-width:900px) {
     .layout { flex-direction:column; }
     .sidebar { width:100%; display:flex; overflow-x:auto; }
@@ -780,10 +823,9 @@ app.get('/', (req, res) => {
 </head>
 <body>
 <div class="app">
-  <!-- Login Card -->
   <div id="loginView" class="login-wrap card">
     <h1>Shop Admin Dashboard</h1>
-    <p>Login using <code>ADMIN_PASSWORD</code> (from bot env / Replit secrets).</p>
+    <p>Login using <code>ADMIN_PASSWORD</code> (from bot env / secrets).</p>
     <div class="mt12">
       <input type="password" id="pwInput" placeholder="Admin password" />
     </div>
@@ -794,8 +836,6 @@ app.get('/', (req, res) => {
     <div class="mt12 text-sm" id="loginStatus">Status: <span class="status-bad">Logged out</span></div>
     <div class="mt8 text-sm" id="apiInfo"></div>
   </div>
-
-  <!-- Admin Layout -->
   <div id="adminLayout" class="layout hidden">
     <aside class="sidebar">
       <div class="sidebar-title">Admin</div>
@@ -812,7 +852,6 @@ app.get('/', (req, res) => {
       </div>
       <div class="nav-footer" id="sidebarStatus">Status: OK</div>
     </aside>
-
     <main class="main">
       <div class="card">
         <div class="main-header">
@@ -822,7 +861,6 @@ app.get('/', (req, res) => {
           </div>
         </div>
         <div class="views">
-          <!-- Stats -->
           <section id="view-stats" class="view active">
             <div class="stat-grid">
               <div class="card stat-card">
@@ -844,7 +882,6 @@ app.get('/', (req, res) => {
             </div>
           </section>
 
-          <!-- Products -->
           <section id="view-products" class="view">
             <div class="form-grid">
               <div class="card">
@@ -887,7 +924,6 @@ app.get('/', (req, res) => {
             </div>
           </section>
 
-          <!-- Orders -->
           <section id="view-orders" class="view">
             <div class="card">
               <h3>Recent Orders</h3>
@@ -900,7 +936,6 @@ app.get('/', (req, res) => {
             </div>
           </section>
 
-          <!-- Reviews -->
           <section id="view-reviews" class="view">
             <div class="card">
               <h3>Latest Reviews</h3>
@@ -908,7 +943,6 @@ app.get('/', (req, res) => {
             </div>
           </section>
 
-          <!-- Discounts -->
           <section id="view-discounts" class="view">
             <div class="card">
               <h3>Discount Codes</h3>
@@ -952,7 +986,6 @@ document.addEventListener('DOMContentLoaded', function () {
   apiInfo.textContent = 'Backend API: ' + window.location.origin;
 });
 
-// طلب بسيط بدون توكين
 function checkHealth() {
   fetch('/api/health')
     .then(r => r.ok ? r.json() : Promise.reject())
@@ -1048,7 +1081,6 @@ async function authedFetch(url, options) {
   return fetch(url, options);
 }
 
-// ===== Stats =====
 async function loadStats() {
   try {
     const res = await fetch('/api/stats');
@@ -1062,7 +1094,6 @@ async function loadStats() {
   }
 }
 
-// ===== Products =====
 async function loadProducts() {
   try {
     const res = await fetch('/api/products');
@@ -1144,7 +1175,6 @@ async function addKeys() {
   }
 }
 
-// ===== Orders =====
 async function loadOrders() {
   if (!token) return;
   try {
@@ -1210,7 +1240,6 @@ async function rejectOrder(inv) {
   }
 }
 
-// ===== Reviews =====
 async function loadReviews() {
   if (!token) return;
   try {
@@ -1240,7 +1269,6 @@ async function loadReviews() {
   }
 }
 
-// ===== Discounts =====
 async function loadDiscounts() {
   if (!token) return;
   try {
@@ -1355,6 +1383,7 @@ app.get('/api/stats', (req, res) => {
     const totalReviews = data.reviews.length;
     res.json({ totalProducts, totalKeys, totalOrders, totalReviews });
 });
+
 // ====== Reviews API ======
 app.get('/api/reviews', adminAuth, (req, res) => {
   const data = loadData();
@@ -1477,7 +1506,6 @@ app.get('/api/orders/recent', adminAuth, (req, res) => {
     const arr = Object.values(data.orders)
         .sort((a, b) => b.timestamp - a.timestamp)
         .slice(0, 200);
-    // enrich with product name
     arr.forEach(o => {
         const p = data.products[o.productId];
         if (p) o.productName = p.name;
@@ -1552,6 +1580,7 @@ app.post('/api/orders/:invoice/reject', adminAuth, async (req, res) => {
 app.get('/api/health', (req, res) => {
     res.json({ ok: true });
 });
+
 const app2 = express();
 app2.get("/", (req, res) => res.send("Bot is alive"));
 app2.listen(3000, () => console.log("🌐 KeepAlive server running on port 3000"));
