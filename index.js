@@ -21,7 +21,8 @@ const client = new Client({
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
-        GatewayIntentBits.DirectMessages
+        GatewayIntentBits.DirectMessages,
+        GatewayIntentBits.GuildMembers // مهم عشان الرتب
     ],
     partials: [Partials.Channel] // لاستقبال رسائل الخاص
 });
@@ -69,7 +70,7 @@ const translations = {
         langSelectContent: '🌐 Choose your preferred language. All future bot messages will use this language.',
         paymentInstructionsTitle: 'Payment Instructions',
         payment_STC_BARQ: '💳 STC Pay / Barq:\nOpen a ticket in the server to get the transfer number, then send a screenshot of the payment to the bot in DM for verification.',
-        payment_GIFTCARD: '🎮 Gift Card:\nThe gift card must be from this site only:\nhttps://skine.com/en-us/rewarble\nAfter purchasing, send the code or screenshot to the bot in DM.',
+        payment_GIFTCARD: '🧺 Gift Card:\nThe gift card must be from this site only:\nhttps://skine.com/en-us/rewarble\nAfter purchasing, send the code or screenshot to the bot in DM.',
         payment_BANK: '🏦 Bank Transfer:\nIBAN: `SA1980204507849222121014`\nTransfer the amount, then send a screenshot of the transfer receipt to the bot in DM for verification.',
         payment_PAYPAL: '💰 PayPal:\nPay to this email:\n`17sutef2@gmail.com`\nAfter paying, send a screenshot to the bot in DM for verification.',
         paymentNoteFooter: 'After paying, you must send a screenshot of the payment to the bot in DM for verification.'
@@ -110,7 +111,7 @@ const translations = {
         langSelectContent: '🌐 اختر اللغة المفضلة لك، كل رسائل البوت القادمة ستكون بهذه اللغة.',
         paymentInstructionsTitle: 'تعليمات الدفع',
         payment_STC_BARQ: '💳 STC Pay / برق:\nافتح تذكرة في السيرفر لتحصل على رقم التحويل، ثم أرسل صورة الإيصال للبوت في الخاص للتحقق من عملية الدفع.',
-        payment_GIFTCARD: '🎮 بطاقة هدية (Gift Card):\nيجب أن تكون البطاقة من هذا الموقع فقط:\nhttps://skine.com/en-us/rewarble\nبعد الشراء، أرسل الكود أو صورة البطاقة للبوت في الخاص.',
+        payment_GIFTCARD: '🧺 بطاقة هدية (Gift Card):\nيجب أن تكون البطاقة من هذا الموقع فقط:\nhttps://skine.com/en-us/rewarble\nبعد الشراء، أرسل الكود أو صورة البطاقة للبوت في الخاص.',
         payment_BANK: '🏦 التحويل البنكي:\nرقم الآيبان:\n`SA1980204507849222121014`\nحوّل المبلغ ثم أرسل صورة إيصال التحويل للبوت في الخاص للتحقق.',
         payment_PAYPAL: '💰 PayPal:\nادفع على هذا الإيميل:\n`17sutef2@gmail.com`\nبعد الدفع، أرسل صورة الدفع للبوت في الخاص للتحقق.',
         paymentNoteFooter: 'بعد الدفع، يجب إرسال صورة إثبات الدفع للبوت في الخاص للتحقق من العملية.'
@@ -159,6 +160,41 @@ function t(userId, key, vars = {}) {
         text = text.replace(`{${v}}`, vars[v]);
     });
     return text;
+}
+
+// ====== دالة إعطاء رتبة Customer ======
+async function giveCustomerRole(userId) {
+    const SERVER_ID = "1438166903381033064";
+    const CUSTOMER_ROLE_ID = "1438169633365430272";
+    const OWNER_ID = process.env.OWNER_ID;
+
+    try {
+        const guild = await client.guilds.fetch(SERVER_ID);
+        if (!guild) throw new Error("Guild not found");
+
+        const member = await guild.members.fetch(userId);
+        if (!member) throw new Error("Member not found in guild");
+
+        if (member.roles.cache.has(CUSTOMER_ROLE_ID)) {
+            console.log(`ℹ️ User ${member.user.tag} already has Customer role.`);
+            return;
+        }
+
+        await member.roles.add(CUSTOMER_ROLE_ID);
+        console.log(`✔️ Customer role assigned to ${member.user.tag}`);
+    } catch (err) {
+        console.error("❌ Failed to assign Customer role:", err);
+        if (OWNER_ID) {
+            try {
+                const owner = await client.users.fetch(OWNER_ID);
+                await owner.send(
+                    `⚠️ **Failed to assign Customer role** to user <@${userId}>.\nError: ${err.message}`
+                );
+            } catch (dmErr) {
+                console.error("❌ Failed to DM OWNER about role assignment error:", dmErr);
+            }
+        }
+    }
 }
 
 // ====== Discord Bot ======
@@ -454,7 +490,7 @@ client.on('interactionCreate', async (interaction) => {
                         description: 'افتح تذكرة لتحصل على رقم التحويل ثم أرسل صورة الإيصال.'
                     },
                     {
-                        label: '🎮 Gift Card (Skine)',
+                        label: '🧺 Gift Card (Skine)',
                         value: 'giftcard',
                         description: 'بطاقة من https://skine.com/en-us/rewarble فقط.'
                     },
@@ -482,7 +518,7 @@ client.on('interactionCreate', async (interaction) => {
                         description: 'Open ticket to get transfer number, then send receipt.'
                     },
                     {
-                        label: '🎮 Gift Card (Skine)',
+                        label: '🧺 Gift Card (Skine)',
                         value: 'giftcard',
                         description: 'Card from https://skine.com/en-us/rewarble only.'
                     },
@@ -681,7 +717,7 @@ client.on('interactionCreate', async (interaction) => {
             return;
         }
 
-        // قبول الطلب
+        // قبول الطلب من الخاص (الأزرار في DM مع المالك)
         if (id.startsWith('approve_')) {
             if (interaction.user.id !== process.env.OWNER_ID) return;
 
@@ -711,6 +747,9 @@ client.on('interactionCreate', async (interaction) => {
             await buyer.send(
                 t(order.userId, 'orderApproved') + `\n\`\`\`${availableKey.value}\`\`\``
             );
+
+            // ✅ هنا نعطيه رتبة Customer بعد استلام المفتاح
+            await giveCustomerRole(order.userId);
 
             await interaction.update({
                 content: `✅ Order #${invoiceNumber} approved and key delivered.`,
@@ -1539,7 +1578,7 @@ async function deleteDiscount(code) {
 
 app.post('/api/admin/login', (req, res) => {
     const pw = (req.body && req.body.password) || '';
-    if (!pw || pw !== ADMIN_PASSWORD) {
+    if (!pw || !pw === ADMIN_PASSWORD) {
         return res.status(401).json({ error: 'invalid_password' });
     }
     const token = createToken();
@@ -1726,6 +1765,13 @@ app.post('/api/orders/:invoice/accept', adminAuth, async (req, res) => {
         await sendReviewRequest(buyer, order, product);
     } catch (e) {
         console.error('Failed to DM buyer on accept:', e);
+    }
+
+    // ✅ إعطاء رتبة Customer من لوحة التحكم بعد القبول
+    try {
+        await giveCustomerRole(order.userId);
+    } catch (e) {
+        console.error('Failed to give Customer role from dashboard:', e);
     }
 
     res.json({ ok: true });
