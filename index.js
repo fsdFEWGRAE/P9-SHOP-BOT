@@ -9,7 +9,6 @@ const {
     ModalBuilder,
     TextInputBuilder,
     TextInputStyle,
-    PermissionFlagsBits,
     Partials
 } = require('discord.js');
 const fs = require('fs');
@@ -47,7 +46,7 @@ const translations = {
         product: 'Product',
         price: 'Price',
         paymentMethod: 'Payment Method',
-        sendProof: 'Please send your payment proof as an image or message.',
+        sendProof: 'Please send your payment proof as an image or message to the bot in DM.',
         proofReceived: 'Payment proof received! Waiting for owner approval...',
         orderApproved: 'Your order has been approved! Here is your key:',
         orderRejected: 'Your order has been rejected.',
@@ -59,16 +58,27 @@ const translations = {
         discountUsed: 'You already have a discount applied!',
         rateExperience: 'Please rate your experience:',
         reviewReceived: 'Thank you for your review!',
-        languageChanged: 'Language changed to English!',
+        languageChanged: 'Language changed!',
         customer: 'Customer',
         comment: 'Comment',
-        orderPending: 'New Order Pending Approval'
+        orderPending: 'New Order Pending Approval',
+        // shop button + language
+        shopButtonText: '🛒 Click the button below to browse products and choose your payment method.',
+        shopSelectProduct: '🛍 Select the product you want to buy:',
+        langSelectTitle: 'Choose your language',
+        langSelectContent: '🌐 Choose your preferred language. All future bot messages will use this language.',
+        paymentInstructionsTitle: 'Payment Instructions',
+        payment_STC_BARQ: '💳 STC Pay / Barq:\nOpen a ticket in the server to get the transfer number, then send a screenshot of the payment to the bot in DM for verification.',
+        payment_GIFTCARD: '🎮 Gift Card:\nThe gift card must be from this site only:\nhttps://skine.com/en-us/rewarble\nAfter purchasing, send the code or screenshot to the bot in DM.',
+        payment_BANK: '🏦 Bank Transfer:\nIBAN: `SA1980204507849222121014`\nTransfer the amount, then send a screenshot of the transfer receipt to the bot in DM for verification.',
+        payment_PAYPAL: '💰 PayPal:\nPay to this email:\n`17sutef2@gmail.com`\nAfter paying, send a screenshot to the bot in DM for verification.',
+        paymentNoteFooter: 'After paying, you must send a screenshot of the payment to the bot in DM for verification.'
     },
     ar: {
         productAdded: 'تم إضافة المنتج بنجاح!',
         keyAdded: 'تم إضافة المفتاح للمنتج بنجاح!',
         productNotFound: 'المنتج غير موجود!',
-        selectProduct: 'اختر منتج للشراء:',
+        selectProduct: 'اختر منتجاً للشراء:',
         selectPayment: 'اختر طريقة الدفع:',
         noProducts: 'لا توجد منتجات متاحة!',
         noStock: 'هذا المنتج غير متوفر حالياً!',
@@ -77,7 +87,7 @@ const translations = {
         product: 'المنتج',
         price: 'السعر',
         paymentMethod: 'طريقة الدفع',
-        sendProof: 'يرجى إرسال إثبات الدفع كصورة أو رسالة.',
+        sendProof: 'يرجى إرسال إثبات الدفع (صورة أو رسالة) للبوت في الخاص للتحقق من العملية.',
         proofReceived: 'تم استلام إثبات الدفع! في انتظار موافقة المالك...',
         orderApproved: 'تمت الموافقة على طلبك! إليك المفتاح:',
         orderRejected: 'تم رفض طلبك.',
@@ -89,10 +99,21 @@ const translations = {
         discountUsed: 'لديك بالفعل كود خصم مطبق!',
         rateExperience: 'يرجى تقييم تجربتك:',
         reviewReceived: 'شكراً لتقييمك!',
-        languageChanged: 'تم تغيير اللغة إلى العربية!',
+        languageChanged: 'تم تغيير لغتك بنجاح!',
         customer: 'العميل',
         comment: 'التعليق',
-        orderPending: 'طلب جديد في انتظار الموافقة'
+        orderPending: 'طلب جديد في انتظار الموافقة',
+        // زر الشوب + اللغة
+        shopButtonText: '🛒 اضغط زر الشراء بالأسفل لاختيار المنتج وطريقة الدفع.',
+        shopSelectProduct: '🛍 اختر المنتج الذي تريد شراءه:',
+        langSelectTitle: 'اختر لغتك',
+        langSelectContent: '🌐 اختر اللغة المفضلة لك، كل رسائل البوت القادمة ستكون بهذه اللغة.',
+        paymentInstructionsTitle: 'تعليمات الدفع',
+        payment_STC_BARQ: '💳 STC Pay / برق:\nافتح تذكرة في السيرفر لتحصل على رقم التحويل، ثم أرسل صورة الإيصال للبوت في الخاص للتحقق من عملية الدفع.',
+        payment_GIFTCARD: '🎮 بطاقة هدية (Gift Card):\nيجب أن تكون البطاقة من هذا الموقع فقط:\nhttps://skine.com/en-us/rewarble\nبعد الشراء، أرسل الكود أو صورة البطاقة للبوت في الخاص.',
+        payment_BANK: '🏦 التحويل البنكي:\nرقم الآيبان:\n`SA1980204507849222121014`\nحوّل المبلغ ثم أرسل صورة إيصال التحويل للبوت في الخاص للتحقق.',
+        payment_PAYPAL: '💰 PayPal:\nادفع على هذا الإيميل:\n`17sutef2@gmail.com`\nبعد الدفع، أرسل صورة الدفع للبوت في الخاص للتحقق.',
+        paymentNoteFooter: 'بعد الدفع، يجب إرسال صورة إثبات الدفع للبوت في الخاص للتحقق من العملية.'
     }
 };
 
@@ -146,6 +167,7 @@ client.once('clientReady', () => {
     console.log(`📦 Serving ${Object.keys(loadData().products).length} products`);
 });
 
+// ====== أوامر البوت الأساسية ======
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
@@ -173,11 +195,13 @@ client.on('messageCreate', async (message) => {
                 '-discount CODE',
                 '-lang en',
                 '-lang ar',
-                '-sendshopbutton (إرسال زر الشراء في الروم)'
+                '-sendshopbutton (owner only)',
+                '-sendlang (owner only)'
             ].join('\n')
         );
     }
 
+    // إضافة منتج
     if (command === 'addproduct') {
         if (message.author.id !== process.env.OWNER_ID) return;
 
@@ -202,6 +226,7 @@ client.on('messageCreate', async (message) => {
         message.reply(t(message.author.id, 'productAdded'));
     }
 
+    // إضافة مفتاح
     if (command === 'addkey') {
         if (message.author.id !== process.env.OWNER_ID) return;
 
@@ -228,6 +253,7 @@ client.on('messageCreate', async (message) => {
         message.reply(t(message.author.id, 'keyAdded'));
     }
 
+    // أمر الشراء القديم عبر منشن
     if (command === 'buy') {
         const data = loadData();
         const products = Object.values(data.products);
@@ -255,6 +281,7 @@ client.on('messageCreate', async (message) => {
         });
     }
 
+    // إضافة كود خصم
     if (command === 'adddiscount') {
         if (message.author.id !== process.env.OWNER_ID) return;
 
@@ -278,6 +305,7 @@ client.on('messageCreate', async (message) => {
         message.reply(t(message.author.id, 'discountAdded'));
     }
 
+    // استخدام كود خصم
     if (command === 'discount') {
         const code = args[0]?.toUpperCase();
         if (!code) return;
@@ -305,6 +333,7 @@ client.on('messageCreate', async (message) => {
         );
     }
 
+    // تغيير اللغة بالأمر
     if (command === 'lang') {
         const lang = args[0]?.toLowerCase();
 
@@ -319,22 +348,23 @@ client.on('messageCreate', async (message) => {
         message.reply(t(message.author.id, 'languageChanged'));
     }
 
+    // عرض المخزون
     if (command === 'stock') {
         const data = loadData();
         const products = Object.values(data.products);
 
         if (products.length === 0) {
-            return message.reply("❌ لا توجد منتجات حالياً.");
+            return message.reply('❌ لا توجد منتجات حالياً.');
         }
 
-        let msg = "📦 **حالة المخزون:**\n\n";
+        let msg = '📦 **حالة المخزون:**\n\n';
 
         products.forEach(p => {
             const stock = p.keys.filter(k => !k.used).length;
 
-            let color = "🟩";
-            if (stock < 5) color = "🟧";
-            if (stock === 0) color = "🟥";
+            let color = '🟩';
+            if (stock < 5) color = '🟧';
+            if (stock === 0) color = '🟥';
 
             msg += `${color} **${p.name}** — (${p.id})\n`;
             msg += `   🗝️ Keys: **${stock}**\n\n`;
@@ -343,66 +373,54 @@ client.on('messageCreate', async (message) => {
         return message.reply(msg);
     }
 
-    // ===== إرسال زر الشراء في الروم =====
+    // إرسال زر الشراء في روم معيّن
     if (command === 'sendshopbutton') {
         if (message.author.id !== process.env.OWNER_ID) return;
 
-        const data = loadData();
-        const products = Object.values(data.products);
-
-        if (products.length === 0) {
-            return message.reply("❌ لا توجد منتجات حالياً.");
-        }
-
         const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
-                .setCustomId("open_shop")
-                .setLabel("🛒 شراء منتج")
+                .setCustomId('open_shop')
+                .setLabel('🛒 شراء منتج')
                 .setStyle(ButtonStyle.Primary)
         );
 
         await message.channel.send({
-            content: "🎁 **اضغط زر الشراء للاطلاع على المنتجات**",
+            content:
+                '🛒 اضغط زر الشراء لعرض المنتجات واختيار طريقة الدفع.\n' +
+                '🛒 Click the button below to browse products and choose your payment method.',
+            components: [row]
+        });
+    }
+
+    // إرسال رسالة اختيار اللغة بأزرار
+    if (command === 'sendlang') {
+        if (message.author.id !== process.env.OWNER_ID) return;
+
+        const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId('set_lang_ar')
+                .setLabel('العربية 🇸🇦')
+                .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId('set_lang_en')
+                .setLabel('English 🇺🇸')
+                .setStyle(ButtonStyle.Secondary)
+        );
+
+        await message.channel.send({
+            content:
+                '🌐 اختر لغتك المفضلة / Choose your preferred language.\n' +
+                'كل رسائل البوت القادمة ستكون بهذه اللغة.',
             components: [row]
         });
     }
 });
 
+// ====== الإنتراكشنات (منيو + أزرار + مودال) ======
 client.on('interactionCreate', async (interaction) => {
-    // ===== زر فتح المتجر من الروم =====
-    if (interaction.isButton() && interaction.customId === 'open_shop') {
-        const data = loadData();
-        const products = Object.values(data.products);
-
-        if (products.length === 0) {
-            return interaction.reply({
-                content: "❌ لا توجد منتجات حالياً.",
-                ephemeral: true
-            });
-        }
-
-        const options = products.map(p => ({
-            label: `${p.name} - ${p.price}`,
-            description: `المخزون: ${p.keys.filter(k => !k.used).length}`,
-            value: p.id
-        }));
-
-        const row = new ActionRowBuilder().addComponents(
-            new StringSelectMenuBuilder()
-                .setCustomId("select_product")
-                .setPlaceholder("🛒 اختر منتجاً للشراء")
-                .addOptions(options)
-        );
-
-        return interaction.reply({
-            content: "🛍 **اختر المنتج الذي تريد شراءه:**",
-            components: [row],
-            ephemeral: true
-        });
-    }
-
-    // ===== اختيار المنتج / الدفع =====
+    // ----- منيو اختيار المنتجات + الدفع -----
     if (interaction.isStringSelectMenu()) {
+        // اختيار منتج
         if (interaction.customId === 'select_product') {
             const productId = interaction.values[0];
             const data = loadData();
@@ -415,13 +433,66 @@ client.on('interactionCreate', async (interaction) => {
                 });
             }
 
-            const paymentMethods = [
-                { label: 'PayPal', value: 'paypal' },
-                { label: 'STC Pay', value: 'stc' },
-                { label: 'Barq', value: 'barq' },
-                { label: 'Gift Card', value: 'giftcard' },
-                { label: 'Bank Transfer', value: 'bank' }
-            ];
+            const lang = getLang(interaction.user.id);
+            let paymentMethods;
+
+            if (lang === 'ar') {
+                paymentMethods = [
+                    {
+                        label: '💰 PayPal',
+                        value: 'paypal',
+                        description: 'الدفع عبر PayPal ثم إرسال صورة الإيصال في الخاص.'
+                    },
+                    {
+                        label: '💳 STC Pay',
+                        value: 'stc',
+                        description: 'افتح تذكرة لتحصل على رقم التحويل ثم أرسل صورة الإيصال.'
+                    },
+                    {
+                        label: '🚀 برق Barq',
+                        value: 'barq',
+                        description: 'افتح تذكرة لتحصل على رقم التحويل ثم أرسل صورة الإيصال.'
+                    },
+                    {
+                        label: '🎮 Gift Card (Skine)',
+                        value: 'giftcard',
+                        description: 'بطاقة من https://skine.com/en-us/rewarble فقط.'
+                    },
+                    {
+                        label: '🏦 التحويل البنكي',
+                        value: 'bank',
+                        description: 'تحويل إلى الآيبان ثم إرسال صورة الإيصال في الخاص.'
+                    }
+                ];
+            } else {
+                paymentMethods = [
+                    {
+                        label: '💰 PayPal',
+                        value: 'paypal',
+                        description: 'Pay via PayPal then DM payment screenshot.'
+                    },
+                    {
+                        label: '💳 STC Pay',
+                        value: 'stc',
+                        description: 'Open ticket to get transfer number, then send receipt.'
+                    },
+                    {
+                        label: '🚀 Barq',
+                        value: 'barq',
+                        description: 'Open ticket to get transfer number, then send receipt.'
+                    },
+                    {
+                        label: '🎮 Gift Card (Skine)',
+                        value: 'giftcard',
+                        description: 'Card from https://skine.com/en-us/rewarble only.'
+                    },
+                    {
+                        label: '🏦 Bank Transfer',
+                        value: 'bank',
+                        description: 'Transfer to IBAN then DM transfer screenshot.'
+                    }
+                ];
+            }
 
             const row = new ActionRowBuilder().addComponents(
                 new StringSelectMenuBuilder()
@@ -437,11 +508,19 @@ client.on('interactionCreate', async (interaction) => {
             });
         }
 
+        // اختيار طريقة الدفع
         if (interaction.customId.startsWith('select_payment_')) {
             const productId = interaction.customId.split('_')[2];
             const paymentMethod = interaction.values[0];
             const data = loadData();
             const product = data.products[productId];
+
+            if (!product) {
+                return interaction.reply({
+                    content: t(interaction.user.id, 'productNotFound'),
+                    ephemeral: true
+                });
+            }
 
             let price = product.price;
             const userDiscount = data.discountRedemptions[interaction.user.id];
@@ -472,9 +551,33 @@ client.on('interactionCreate', async (interaction) => {
 
             saveData(data);
 
+            const lang = getLang(interaction.user.id);
+            let paymentDetailsText = '';
+            if (paymentMethod === 'stc' || paymentMethod === 'barq') {
+                paymentDetailsText =
+                    lang === 'ar'
+                        ? translations.ar.payment_STC_BARQ
+                        : translations.en.payment_STC_BARQ;
+            } else if (paymentMethod === 'giftcard') {
+                paymentDetailsText =
+                    lang === 'ar'
+                        ? translations.ar.payment_GIFTCARD
+                        : translations.en.payment_GIFTCARD;
+            } else if (paymentMethod === 'bank') {
+                paymentDetailsText =
+                    lang === 'ar'
+                        ? translations.ar.payment_BANK
+                        : translations.en.payment_BANK;
+            } else if (paymentMethod === 'paypal') {
+                paymentDetailsText =
+                    lang === 'ar'
+                        ? translations.ar.payment_PAYPAL
+                        : translations.en.payment_PAYPAL;
+            }
+
             const embed = new EmbedBuilder()
                 .setTitle(t(interaction.user.id, 'invoiceTitle'))
-                .setColor(0x00AE86)
+                .setColor(0x00ae86)
                 .addFields(
                     {
                         name: t(interaction.user.id, 'invoiceNumber'),
@@ -495,32 +598,101 @@ client.on('interactionCreate', async (interaction) => {
                         name: t(interaction.user.id, 'paymentMethod'),
                         value: paymentMethod.toUpperCase(),
                         inline: true
+                    },
+                    {
+                        name:
+                            lang === 'ar'
+                                ? translations.ar.paymentInstructionsTitle
+                                : translations.en.paymentInstructionsTitle,
+                        value: paymentDetailsText
                     }
                 )
-                .setFooter({ text: t(interaction.user.id, 'sendProof') })
+                .setFooter({
+                    text:
+                        lang === 'ar'
+                            ? translations.ar.paymentNoteFooter
+                            : translations.en.paymentNoteFooter
+                })
                 .setTimestamp();
 
             await interaction.user.send({ embeds: [embed] });
             await interaction.reply({
-                content: '✅ Invoice sent to your DM!',
+                content:
+                    lang === 'ar'
+                        ? '✅ تم إرسال الفاتورة وتعليمات الدفع إلى الخاص.'
+                        : '✅ Invoice and payment instructions sent to your DM.',
                 ephemeral: true
             });
         }
     }
 
-    // ===== أزرار قبول/رفض + تقييم =====
+    // ----- الأزرار -----
     if (interaction.isButton()) {
-        if (interaction.customId.startsWith('approve_')) {
+        const id = interaction.customId;
+
+        // زر اختيار اللغة
+        if (id === 'set_lang_ar' || id === 'set_lang_en') {
+            const data = loadData();
+            data.userLanguages[interaction.user.id] = id === 'set_lang_ar' ? 'ar' : 'en';
+            saveData(data);
+
+            await interaction.reply({
+                content: t(interaction.user.id, 'languageChanged'),
+                ephemeral: true
+            });
+            return;
+        }
+
+        // زر فتح المتجر (open_shop)
+        if (id === 'open_shop') {
+            const data = loadData();
+            const products = Object.values(data.products);
+
+            if (products.length === 0) {
+                return interaction.reply({
+                    content: t(interaction.user.id, 'noProducts'),
+                    ephemeral: true
+                });
+            }
+
+            const lang = getLang(interaction.user.id);
+
+            const options = products.map((p) => ({
+                label: `${p.name} - ${p.price}`,
+                description:
+                    lang === 'ar'
+                        ? `المخزون: ${p.keys.filter((k) => !k.used).length}`
+                        : `Stock: ${p.keys.filter((k) => !k.used).length}`,
+                value: p.id
+            }));
+
+            const row = new ActionRowBuilder().addComponents(
+                new StringSelectMenuBuilder()
+                    .setCustomId('select_product')
+                    .setPlaceholder(t(interaction.user.id, 'selectProduct'))
+                    .addOptions(options)
+            );
+
+            await interaction.reply({
+                content: t(interaction.user.id, 'shopSelectProduct'),
+                components: [row],
+                ephemeral: true
+            });
+            return;
+        }
+
+        // قبول الطلب
+        if (id.startsWith('approve_')) {
             if (interaction.user.id !== process.env.OWNER_ID) return;
 
-            const invoiceNumber = parseInt(interaction.customId.split('_')[1]);
+            const invoiceNumber = parseInt(id.split('_')[1]);
             const data = loadData();
             const order = data.orders[invoiceNumber];
 
             if (!order) return;
 
             const product = data.products[order.productId];
-            const availableKey = product.keys.find(k => !k.used);
+            const availableKey = product.keys.find((k) => !k.used);
 
             if (!availableKey) {
                 return interaction.reply({
@@ -537,8 +709,7 @@ client.on('interactionCreate', async (interaction) => {
 
             const buyer = await client.users.fetch(order.userId);
             await buyer.send(
-                t(order.userId, 'orderApproved') +
-                    `\n\`\`\`${availableKey.value}\`\`\``
+                t(order.userId, 'orderApproved') + `\n\`\`\`${availableKey.value}\`\`\``
             );
 
             await interaction.update({
@@ -547,12 +718,14 @@ client.on('interactionCreate', async (interaction) => {
             });
 
             sendReviewRequest(buyer, order, product);
+            return;
         }
 
-        if (interaction.customId.startsWith('reject_')) {
+        // رفض الطلب
+        if (id.startsWith('reject_')) {
             if (interaction.user.id !== process.env.OWNER_ID) return;
 
-            const invoiceNumber = parseInt(interaction.customId.split('_')[1]);
+            const invoiceNumber = parseInt(id.split('_')[1]);
             const data = loadData();
             const order = data.orders[invoiceNumber];
 
@@ -574,10 +747,12 @@ client.on('interactionCreate', async (interaction) => {
                 content: `❌ Order #${invoiceNumber} rejected.`,
                 components: []
             });
+            return;
         }
 
-        if (interaction.customId.startsWith('rate_')) {
-            const [_, rating, invoiceNumber] = interaction.customId.split('_');
+        // زر التقييم (يفتح مودال)
+        if (id.startsWith('rate_')) {
+            const [_, rating, invoiceNumber] = id.split('_');
 
             const modal = new ModalBuilder()
                 .setCustomId(`review_${rating}_${invoiceNumber}`)
@@ -593,9 +768,11 @@ client.on('interactionCreate', async (interaction) => {
             modal.addComponents(row);
 
             await interaction.showModal(modal);
+            return;
         }
     }
 
+    // ----- مودال التقييم -----
     if (interaction.isModalSubmit()) {
         if (interaction.customId.startsWith('review_')) {
             const [_, rating, invoiceNumber] = interaction.customId.split('_');
@@ -627,7 +804,7 @@ client.on('interactionCreate', async (interaction) => {
 
             const reviewEmbed = new EmbedBuilder()
                 .setTitle(`${stars} (${rating}/5)`)
-                .setColor(0xFFD700)
+                .setColor(0xffd700)
                 .addFields(
                     {
                         name: t(interaction.user.id, 'customer'),
@@ -667,7 +844,7 @@ async function handleDMProof(message) {
 
     const embed = new EmbedBuilder()
         .setTitle(t(owner.id, 'orderPending'))
-        .setColor(0xFF9900)
+        .setColor(0xff9900)
         .addFields(
             { name: 'Invoice', value: `#${order.invoiceNumber}`, inline: true },
             { name: 'Customer', value: `<@${message.author.id}>`, inline: true },
@@ -746,7 +923,7 @@ function createToken() {
 
 // صفحة HTML بسيطة للوحة التحكم
 app.get('/', (req, res) => {
-  res.send(`<!DOCTYPE html>
+    res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -780,6 +957,7 @@ app.get('/', (req, res) => {
   .status-ok { color:#22c55e; }
   .status-bad { color:#ef4444; }
   .hidden { display:none !important; }
+
   .layout { display:flex; gap:18px; margin-top:24px; }
   .sidebar { width:230px; background:#020617; border-radius:14px; padding:14px 12px; box-shadow:0 18px 40px rgba(15,23,42,0.9); border:1px solid rgba(148,163,184,0.2); }
   .sidebar-title { font-size:18px; font-weight:700; margin-bottom:12px; }
@@ -787,33 +965,41 @@ app.get('/', (req, res) => {
   .nav-btn span.icon { font-size:16px; }
   .nav-btn.active { background:rgba(15,23,42,0.95); box-shadow:0 0 0 1px rgba(56,189,248,0.7); }
   .nav-footer { margin-top:14px; border-top:1px solid #1f2937; padding-top:10px; font-size:11px; color:#9ca3af; }
+
   .main { flex:1; min-width:0; }
   .main-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
   .main-header h2 { font-size:20px; font-weight:700; }
   .main-header-right { display:flex; align-items:center; gap:8px; font-size:12px; color:#9ca3af; }
+
   .views { }
   .view { display:none; }
   .view.active { display:block; }
+
   .stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-top:10px; }
   .stat-card h3 { font-size:13px; color:#9ca3af; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.08em; }
   .stat-card .value { font-size:26px; font-weight:700; margin-top:2px; }
+
   table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
   th, td { padding:8px 10px; border-bottom:1px solid #111827; }
   th { background:#020617; color:#9ca3af; font-weight:500; text-align:left; }
   tr:hover td { background:#020617; }
+
   .tag { display:inline-flex; align-items:center; padding:2px 8px; border-radius:999px; font-size:11px; }
   .tag-pending { background:#f97316; color:#111827; }
   .tag-completed { background:#22c55e; color:#052e16; }
   .tag-rejected { background:#ef4444; color:#450a0a; }
+
   .form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; margin-top:8px; }
   .field { margin-bottom:8px; font-size:13px; }
   .field label { display:block; margin-bottom:4px; color:#9ca3af; }
   .field input, .field textarea { width:100%; padding:7px 8px; border-radius:8px; border:1px solid #4b5563; background:#020617; color:#e5e7eb; font-size:13px; }
   .field textarea { min-height:80px; resize:vertical; }
+
   .card-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px; margin-top:10px; }
   .pill { display:inline-flex; align-items:center; padding:2px 8px; border-radius:999px; font-size:11px; background:#111827; color:#e5e7eb; }
   .stars { color:#facc15; font-size:14px; margin-bottom:4px; }
   .small { font-size:11px; color:#9ca3af; }
+
   @media (max-width:900px) {
     .layout { flex-direction:column; }
     .sidebar { width:100%; display:flex; overflow-x:auto; }
@@ -825,7 +1011,7 @@ app.get('/', (req, res) => {
 <div class="app">
   <div id="loginView" class="login-wrap card">
     <h1>Shop Admin Dashboard</h1>
-    <p>Login using <code>ADMIN_PASSWORD</code> (from bot env / secrets).</p>
+    <p>Login using <code>ADMIN_PASSWORD</code>.</p>
     <div class="mt12">
       <input type="password" id="pwInput" placeholder="Admin password" />
     </div>
@@ -836,6 +1022,7 @@ app.get('/', (req, res) => {
     <div class="mt12 text-sm" id="loginStatus">Status: <span class="status-bad">Logged out</span></div>
     <div class="mt8 text-sm" id="apiInfo"></div>
   </div>
+
   <div id="adminLayout" class="layout hidden">
     <aside class="sidebar">
       <div class="sidebar-title">Admin</div>
@@ -852,6 +1039,7 @@ app.get('/', (req, res) => {
       </div>
       <div class="nav-footer" id="sidebarStatus">Status: OK</div>
     </aside>
+
     <main class="main">
       <div class="card">
         <div class="main-header">
@@ -1349,7 +1537,6 @@ async function deleteDiscount(code) {
 
 // ====== REST API للدashboard ======
 
-// Login
 app.post('/api/admin/login', (req, res) => {
     const pw = (req.body && req.body.password) || '';
     if (!pw || pw !== ADMIN_PASSWORD) {
@@ -1371,101 +1558,101 @@ function adminAuth(req, res, next) {
     next();
 }
 
-// Stats
 app.get('/api/stats', (req, res) => {
     const data = loadData();
     const totalProducts = Object.keys(data.products).length;
     let totalKeys = 0;
-    Object.values(data.products).forEach(p => {
-        totalKeys += (p.keys || []).filter(k => !k.used).length;
+    Object.values(data.products).forEach((p) => {
+        totalKeys += (p.keys || []).filter((k) => !k.used).length;
     });
     const totalOrders = Object.keys(data.orders).length;
     const totalReviews = data.reviews.length;
     res.json({ totalProducts, totalKeys, totalOrders, totalReviews });
 });
 
-// ====== Reviews API ======
 app.get('/api/reviews', adminAuth, (req, res) => {
-  const data = loadData();
-  const reviews = (data.reviews || [])
-    .slice()
-    .sort((a, b) => b.timestamp - a.timestamp)
-    .map(r => {
-      const product = data.products[r.productId];
-      return {
-        userId: r.userId,
-        productId: r.productId,
-        productName: product ? product.name : r.productId,
-        rating: r.rating,
-        comment: r.comment,
-        timestamp: r.timestamp
-      };
-    });
-  res.json(reviews);
+    const data = loadData();
+    const reviews = (data.reviews || [])
+        .slice()
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .map((r) => {
+            const product = data.products[r.productId];
+            return {
+                userId: r.userId,
+                productId: r.productId,
+                productName: product ? product.name : r.productId,
+                rating: r.rating,
+                comment: r.comment,
+                timestamp: r.timestamp
+            };
+        });
+    res.json(reviews);
 });
 
-// ====== Discounts API ======
 app.get('/api/discounts', adminAuth, (req, res) => {
-  const data = loadData();
-  const arr = Object.entries(data.discounts || {}).map(([code, info]) => ({
-    code,
-    percent: info.percent,
-    usedCount: info.usedCount || 0,
-    maxUses: info.maxUses || null
-  }));
-  res.json(arr);
+    const data = loadData();
+    const arr = Object.entries(data.discounts || {}).map(([code, info]) => ({
+        code,
+        percent: info.percent,
+        usedCount: info.usedCount || 0,
+        maxUses: info.maxUses || null
+    }));
+    res.json(arr);
 });
 
 app.post('/api/discounts', adminAuth, (req, res) => {
-  const body = req.body || {};
-  const code = body.code ? String(body.code).toUpperCase() : null;
-  const percent = typeof body.percent === 'number' ? body.percent : Number(body.percent);
-  const maxUses = body.maxUses != null ? Number(body.maxUses) : null;
+    const body = req.body || {};
+    const code = body.code ? String(body.code).toUpperCase() : null;
+    const percent =
+        typeof body.percent === 'number' ? body.percent : Number(body.percent);
+    const maxUses = body.maxUses != null ? Number(body.maxUses) : null;
 
-  if (!code || isNaN(percent)) {
-    return res.status(400).json({ error: 'missing_fields' });
-  }
+    if (!code || isNaN(percent)) {
+        return res.status(400).json({ error: 'missing_fields' });
+    }
 
-  const data = loadData();
-  data.discounts = data.discounts || {};
-  const existing = data.discounts[code];
-  data.discounts[code] = {
-    percent,
-    maxUses: isNaN(maxUses) ? null : maxUses,
-    usedCount: existing && typeof existing.usedCount === 'number' ? existing.usedCount : 0
-  };
-  saveData(data);
-  res.json({ ok: true });
+    const data = loadData();
+    data.discounts = data.discounts || {};
+    const existing = data.discounts[code];
+    data.discounts[code] = {
+        percent,
+        maxUses: isNaN(maxUses) ? null : maxUses,
+        usedCount:
+            existing && typeof existing.usedCount === 'number'
+                ? existing.usedCount
+                : 0
+    };
+    saveData(data);
+    res.json({ ok: true });
 });
 
 app.delete('/api/discounts/:code', adminAuth, (req, res) => {
-  const code = String(req.params.code || '').toUpperCase();
-  const data = loadData();
-  if (!data.discounts || !data.discounts[code]) {
-    return res.status(404).json({ error: 'not_found' });
-  }
-  delete data.discounts[code];
+    const code = String(req.params.code || '').toUpperCase();
+    const data = loadData();
+    if (!data.discounts || !data.discounts[code]) {
+        return res.status(404).json({ error: 'not_found' });
+    }
+    delete data.discounts[code];
 
-  if (data.discountRedemptions) {
-    Object.keys(data.discountRedemptions).forEach(uid => {
-      if (data.discountRedemptions[uid] === code) {
-        delete data.discountRedemptions[uid];
-      }
-    });
-  }
+    if (data.discountRedemptions) {
+        Object.keys(data.discountRedemptions).forEach((uid) => {
+            if (data.discountRedemptions[uid] === code) {
+                delete data.discountRedemptions[uid];
+            }
+        });
+    }
 
-  saveData(data);
-  res.json({ ok: true });
+    saveData(data);
+    res.json({ ok: true });
 });
 
-// Products API
 app.get('/api/products', (req, res) => {
     const data = loadData();
-    const arr = Object.values(data.products).map(p => ({
+    const arr = Object.values(data.products).map((p) => ({
         id: p.id,
         name: p.name,
         price: p.price,
-        stock: (p.keys || []).filter(k => !k.used).length
+        stock: (p.keys || []).filter((k) => !k.used).length
     }));
     res.json(arr);
 });
@@ -1493,20 +1680,19 @@ app.post('/api/products/:id/keys', adminAuth, (req, res) => {
     const prod = data.products[pid];
     if (!prod) return res.status(404).json({ error: 'product_not_found' });
     prod.keys = prod.keys || [];
-    keys.forEach(k => {
+    keys.forEach((k) => {
         prod.keys.push({ value: k, used: false });
     });
     saveData(data);
     res.json({ ok: true, added: keys.length });
 });
 
-// Orders API
 app.get('/api/orders/recent', adminAuth, (req, res) => {
     const data = loadData();
     const arr = Object.values(data.orders)
         .sort((a, b) => b.timestamp - a.timestamp)
         .slice(0, 200);
-    arr.forEach(o => {
+    arr.forEach((o) => {
         const p = data.products[o.productId];
         if (p) o.productName = p.name;
     });
@@ -1518,12 +1704,13 @@ app.post('/api/orders/:invoice/accept', adminAuth, async (req, res) => {
     const data = loadData();
     const order = data.orders[invoice];
     if (!order) return res.status(404).json({ error: 'order_not_found' });
-    if (order.status !== 'pending') return res.status(400).json({ error: 'invalid_status' });
+    if (order.status !== 'pending')
+        return res.status(400).json({ error: 'invalid_status' });
 
     const product = data.products[order.productId];
     if (!product) return res.status(404).json({ error: 'product_not_found' });
 
-    const availableKey = (product.keys || []).find(k => !k.used);
+    const availableKey = (product.keys || []).find((k) => !k.used);
     if (!availableKey) return res.status(400).json({ error: 'no_keys' });
 
     availableKey.used = true;
@@ -1534,8 +1721,7 @@ app.post('/api/orders/:invoice/accept', adminAuth, async (req, res) => {
     try {
         const buyer = await client.users.fetch(order.userId);
         await buyer.send(
-            t(order.userId, 'orderApproved') +
-                `\n\`\`\`${availableKey.value}\`\`\``
+            t(order.userId, 'orderApproved') + `\n\`\`\`${availableKey.value}\`\`\``
         );
         await sendReviewRequest(buyer, order, product);
     } catch (e) {
@@ -1576,16 +1762,16 @@ app.post('/api/orders/:invoice/reject', adminAuth, async (req, res) => {
     res.json({ ok: true });
 });
 
-// Health
 app.get('/api/health', (req, res) => {
     res.json({ ok: true });
 });
 
+// KeepAlive بسيط
 const app2 = express();
-app2.get("/", (req, res) => res.send("Bot is alive"));
-app2.listen(3000, () => console.log("🌐 KeepAlive server running on port 3000"));
+app2.get('/', (req, res) => res.send('Bot is alive'));
+app2.listen(3000, () => console.log('🌐 KeepAlive server running on port 3000'));
 
-// تشغيل السيرفر
+// تشغيل السيرفر الأساسي
 app.listen(PORT, () => {
     console.log(`🌐 Dashboard listening on port ${PORT}`);
 });
